@@ -2,23 +2,26 @@
 --
 -- @script: lua-mapreduce.lua
 --
--- @author:  rjoshi
+-- @author:  Rohit Joshi
 --
 -- @copyright Joshi Ventures LLC ? 2012
-
+--
+-- @license Apache License, Version 2.0
+--
 -- VERSION HISTORY:
 -- 1.0 9/13/2012 - Initial release
 --
 -------------------------------------------------------------------------------
 -- Purpose: Lua Map-Reduce server
--- 169.254.100.1
+
 require "copas"
 require "logging.console"
 local socket = require("socket")
 
-
-dofile("utils.lua")
-dofile("serialize.lua")
+--- utils.lua
+require "utils/utils"
+--- requires serialize.lua
+require "utils/serialize"
 
 local logger = logging.console()
 logger:setLevel (logging.WARN)

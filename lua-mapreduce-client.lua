@@ -2,10 +2,12 @@
 --
 -- @script: lua-mapreduce-client.lua
 --
--- @author:  rjoshi
+-- @author:  Rohit joshi
 --
 -- @copyright Joshi Ventures LLC � 2012
-
+--
+-- @license Apache License, Version 2.0
+--
 -- VERSION HISTORY:
 -- 1.0 8/09/2012 - Initial release
 --
@@ -18,9 +20,9 @@
 --- depends on logging
 require "logging.console"
 --- utils.lua
-require "utils"
+require "utils/utils"
 --- requires serialize.lua
-require "serialize"
+require "utils/serialize"
 
 --- declare a logger instance. You can change it to file or other supported
 local logger = logging.console()
