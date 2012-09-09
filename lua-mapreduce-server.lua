@@ -1,24 +1,28 @@
+#!/usr/bin/lua
 -------------------------------------------------------------------------------
 --
--- @script: lua-mapreduce.lua
+-- @script: lua-mapreduce-server.lua
 --
--- @author:  rjoshi
+-- @author:  Rohit Joshi
 --
 -- @copyright Joshi Ventures LLC ? 2012
-
+--
+-- @license Apache License, Version 2.0
+--
 -- VERSION HISTORY:
 -- 1.0 9/13/2012 - Initial release
 --
 -------------------------------------------------------------------------------
 -- Purpose: Lua Map-Reduce server
--- 169.254.100.1
+
 require "copas"
 require "logging.console"
 local socket = require("socket")
 
-
-dofile("utils.lua")
-dofile("serialize.lua")
+--- utils.lua
+require "utils/utils"
+--- requires serialize.lua
+require "utils/serialize"
 
 local logger = logging.console()
 logger:setLevel (logging.WARN)
@@ -319,10 +323,14 @@ end
 -- @return host, port and task_file
 ------------------------------------------------------------------------------
 local function validate_args()
-   local usage = "Usage lua-mapreduce-server.lua -t <task file name>  [ -h host  -p port -l loglevel]"
-   local opts = getopt( arg, "hpdtl" )
+   local usage = "Usage lua-mapreduce-server.lua -t <task file name>  [ -s server  -p port -l loglevel]"
+   local opts = getopt( arg, "hspdtl" )
 
-   local host = opts["h"]
+   if(opts["h"] ~= nil) then
+       print(usage)
+       return;
+   end
+   local host = opts["s"]
    if(host == nil) then host = "127.0.0.1" end
    local port = opts["p"]
    if( port == nil ) then port = "10000" end
