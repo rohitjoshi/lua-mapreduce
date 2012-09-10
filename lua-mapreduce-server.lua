@@ -27,12 +27,15 @@ require "utils/serialize"
 local logger = logging.console()
 logger:setLevel (logging.WARN)
 
+local server_socket
 local map_tasks = {}
 local finalfn
 local map_results = {}
 local reduce_results = {}
 local task_file_content = nil
 local taskfn
+local tasks_completed = false
+
 
 
 ------------------------------------------------------------------------------
@@ -220,12 +223,17 @@ end
 local function client_handler(skt, host, port)
 
 	local peername =  host .. ":" .. port
-	logger:debug ("Received client connection  from:" .. peername)
+	logger:info ("Received client connection  from '%s':" , peername)
 	skt:setoption('tcp-nodelay', true)
 	-- skt:settimeout(1)
 	local client = copas.wrap(skt)
 
-
+	if(tasks_completed) then
+		logger:info("No pending task exists. waiting to receive new task")
+		while tasks_completed do
+			socket:select(nil, nil, 1)
+		end
+	end
 
 	local task_t = {}
     task_t['c'] = "taskfile"
@@ -247,8 +255,12 @@ local function client_handler(skt, host, port)
 		return;
 	end
 	logger:debug("Received response for task_file sent:" .. taskfile_resp)
+	logger:info("Taskfile is sent to client %s successfully", peername)
 	local cl = os.clock()
+
+
 	-- get all map tasks
+	logger:info("Sending map task to client '%s'", peername)
 	local co_taskfn = coroutine.create(taskfn)
 	repeat
 
@@ -274,8 +286,9 @@ local function client_handler(skt, host, port)
 		end
 
 	until (coroutine.status(co_taskfn) == 'dead' or ok ~= true or content == nil or status~="ok")
+    logger:info("All map task processing is completed and map results received successfully")
 
-
+	logger:info("Sending reduce tasks to clinet '%s'", peername)
     local co_reduce = coroutine.create(get_reduce_task)
     repeat
 
@@ -302,10 +315,11 @@ local function client_handler(skt, host, port)
 
 	until (coroutine.status(co_reduce) == 'dead' or ok ~= true or content == nil or status=="ok")
 
+	logger:info("All reduce tasks results are received successfully")
 	print("Total time for map-reduce:" .. os.clock() - cl)
 
 
-	logger:debug("Calling final results")
+	logger:info("Calling final task for client %s", peername)
 	local co_finalfn = coroutine.create(finalfn)
     repeat
 
@@ -313,8 +327,10 @@ local function client_handler(skt, host, port)
 		local ok  = coroutine.resume(co_finalfn, reduce_results)
 	until (coroutine.status(co_finalfn) == 'dead' or ok ~= true)
 
-    logger:debug("Completed all tasks. Closing client connect:" .. peername)
+    logger:info("Completed all tasks. Closing client connect:" .. peername)
+	tasks_completed = true
 	skt:close()
+
 	return;
 end
 
@@ -322,7 +338,7 @@ end
 --- Validate arguments
 -- @return host, port and task_file
 ------------------------------------------------------------------------------
-local function validate_args()
+local function validate_args(arg)
    local usage = "Usage lua-mapreduce-server.lua -t <task file name>  [ -s server  -p port -l loglevel]"
    local opts = getopt( arg, "hspdtl" )
 
@@ -375,7 +391,7 @@ end
 ------------------------------------------------------------------------------
 local function main()
     -- parse command line args and validate
-	local host, port, task_file, loglevel = validate_args()
+	local host, port, task_file, loglevel = validate_args(arg)
 	if(host == nil or port == nil or task_file == nil or loglevel == nil) then return end
 
 	set_loglevel(logger, loglevel)
@@ -386,8 +402,8 @@ local function main()
 
 
     logger:debug("Binding to " .. host .. ":" .. port)
-	local commandServer = socket.bind(host, port)
-	copas.addserver(commandServer,
+	server_socket = socket.bind(host, port)
+	copas.addserver(server_socket,
 			function(c) return client_handler(c, c:getpeername()) end
 		)
 

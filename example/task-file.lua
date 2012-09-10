@@ -44,7 +44,7 @@ local function read_source()
 	--logger:debug("Current directory path:" .. file_path)
 	local source_table = {}
 	for file in lfs.dir(file_path) do
-	    if(string.find(file, ".ttt") ~= nil) then
+	    if(string.find(file, ".lua") ~= nil) then
 		--	logger:debug("File name:" .. file_path .. "/" .. file)
 			local c = read_file(file_path .. "/" .. file)
 		--	logger:debug("file:" .. file .. ", length:" .. #c)
@@ -108,15 +108,23 @@ end
 
 			if(w ~= nil) then
 
-				local words = w:split("[^ %s]+")
+				local words = {}
+				string.gsub(w, "(%a+)", function (word)
+					table.insert(words, string.lower(word))
+				end)
+
+
+				--local words = w:split("[^ %s]+")
+
 				if(words ~= nil) then
 					--logger:debug("Number of words in line " .. k .. " are " .. #words)
 					for j=1, #words do
 						--logger:debug("mapfn:yielding " .. words[j])
-						coroutine.yield(string.lower(words[j]), 1)
+						coroutine.yield(words[j], 1)
 
 					end
 				end
+
 			end
 		end
 	end
