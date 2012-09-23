@@ -34,7 +34,11 @@ local map_results = {}
 local reduce_results = {}
 local task_file_content = nil
 local taskfn
+
 local tasks_completed = false
+local co_reducefn
+local co_taskfn
+local co_finalfn
 
 
 
@@ -261,7 +265,7 @@ local function client_handler(skt, host, port)
 
 	-- get all map tasks
 	logger:info("Sending map task to client '%s'", peername)
-	local co_taskfn = coroutine.create(taskfn)
+
 	repeat
 
 		local ok , key, content = coroutine.resume(co_taskfn); --get task
@@ -289,11 +293,11 @@ local function client_handler(skt, host, port)
     logger:info("All map task processing is completed and map results received successfully")
 
 	logger:info("Sending reduce tasks to clinet '%s'", peername)
-    local co_reduce = coroutine.create(get_reduce_task)
+
     repeat
 
 	    logger:debug("get reduce task")
-		local ok , key, content = coroutine.resume(co_reduce)
+		local ok , key, content = coroutine.resume(co_reducefn)
 		if(ok and key ~= nil and content ~= nil) then
             logger:debug("Got the reduce task:" .. key)
 			local status = send_reduce_task(client, key, content)
@@ -313,14 +317,14 @@ local function client_handler(skt, host, port)
 
 		end
 
-	until (coroutine.status(co_reduce) == 'dead' or ok ~= true or content == nil or status=="ok")
+	until (coroutine.status(co_reducefn) == 'dead' or ok ~= true or content == nil or status=="ok")
 
 	logger:info("All reduce tasks results are received successfully")
 	print("Total time for map-reduce:" .. os.clock() - cl)
 
 
 	logger:info("Calling final task for client %s", peername)
-	local co_finalfn = coroutine.create(finalfn)
+
     repeat
 
 
@@ -381,6 +385,10 @@ local function read_task_file(file)
 	local mr_t = mapreducefn()
 	finalfn = mr_t.finalfn
 	taskfn = mr_t.taskfn
+
+	co_reducefn = coroutine.create(get_reduce_task)
+	co_taskfn = coroutine.create(taskfn)
+	co_finalfn = coroutine.create(finalfn)
     return content
 
 end

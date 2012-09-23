@@ -18,6 +18,9 @@
 -- either map or reduce
 -------------------------------------------------------------------------------
 
+-- lua lanes
+local lanes = require("lanes")
+lanes.configure({with_timers=false})
 --- depends on logging
 require "logging.console"
 --- utils.lua
@@ -29,7 +32,7 @@ require "utils/serialize"
 local logger = logging.console()
 logger:setLevel (logging.WARN)
 local socket = require("socket")
-local tcp = assert(socket.tcp())
+
 local mapfn
 local co_mapfn
 local reducefn
@@ -52,7 +55,7 @@ end
 --- Send Map Result
 -- @return content of the task file
 ------------------------------------------------------------------------------
-local function client_send_map_result(key, k, v)
+local function client_send_map_result(tcp, key, k, v)
 	 local t = {}
 	 local kv = {}
 	 t['k']=key
@@ -70,7 +73,7 @@ end
 --- Send Reduce Result
 -- @return content of the task file
 ------------------------------------------------------------------------------
-local function client_send_reduce_result(key, value)
+local function client_send_reduce_result(tcp, key, value)
     local t = {}
 	 t['k']=key
 	 t['v']=value
@@ -84,7 +87,7 @@ end
 ------------------------------------------------------------------------------
 --- client_loop: client is connected to the server and processing messages
 ------------------------------------------------------------------------------
-local function client_run_loop(host, port)
+local function client_run_loop(tcp, host, port)
     local task_file_content, status
     repeat
 
@@ -139,11 +142,12 @@ local function client_run_loop(host, port)
 		local command = task_t['c']
 		local key = task_t['k']
 		local len = tonumber(task_t['l'])
-		--logger:debug("Received command:" .. command .. ", Key:" .. key .. ", payload length:" .. len)
+		logger:info("Received command:" .. command .. ", Key:" .. key .. ", payload length:" .. len)
 
 		--local command = "map"
-		if(command == "map") then
 
+		if(command == "map") then
+          if mapfn then
 		    local map_data, status = tcp:receive( len )
 			if(status == "closed") then
 				logger:error("Connection closed by foreign host while receiving map content for key:" .. key)
@@ -163,7 +167,7 @@ local function client_run_loop(host, port)
 				logger:debug("Calling mapfn...")
 				local ok, k, v  = coroutine.resume(co_mapfn, key, map_value)
 				if(k ~= nil and v ~= nil) then
-					local s= client_send_map_result(key, k, v)
+					local s= client_send_map_result(tcp, key, k, v)
 					if(status == "closed") then
 						logger:error("Connection closed by foreign host while sending map result with key:" .. key .. ":" .. k)
 						return status;
@@ -176,8 +180,13 @@ local function client_run_loop(host, port)
 				logger:error("Connection closed by foreign host while sending map:completed status for key:" .. key)
 				return status;
 			end
+		  else
+			logger:error("map function is not defined in the taskfile but still received map command")
+		  end
+        end
 
-		elseif(command == "reduce") then
+		if(command == "reduce") then
+		  if reducefn then
 		  --  logger:debug("Receiving reduce task payload lenth:" .. len)
 		    local value, status = tcp:receive(len)
 			 local r_v = loadstring(value)()
@@ -185,7 +194,7 @@ local function client_run_loop(host, port)
 			 repeat
 				local ok, k, v  = coroutine.resume(co_reducefn, key, r_v)
 				if(k ~= nil and v ~= nil) then
-					local s= client_send_reduce_result(k, v)
+					local s= client_send_reduce_result(tcp, k, v)
 					if(status == "closed") then
 						logger:error("Connection closed by foreign host while sending reduce:completed status for key:" .. key)
 					return status;
@@ -198,6 +207,9 @@ local function client_run_loop(host, port)
 				logger:error("Connection closed by foreign host while sending reduce:completed status for key:" .. key)
 				return status;
 			end
+		  else
+			logger:error("reduce function is not defined in the taskfile but still received reduce command")
+		  end
 		end
 		socket.select(nil, nil, 1)
 	end
@@ -208,8 +220,8 @@ end
 -- @return host, port and task_file
 ------------------------------------------------------------------------------
 local function client_Validate_args()
-   local usage = "Usage lua-mapreduce-client.lua  -s host  -p port [-l loglevel]  "
-   local opts = getopt( arg, "hpsl" )
+   local usage = "Usage lua-mapreduce-client.lua  -s host  -p port [-l loglevel  -n number of client connections]  "
+   local opts = getopt( arg, "hpsln" )
 
 	if(opts["h"] ~= nil) then
 		print(usage)
@@ -231,7 +243,9 @@ local function client_Validate_args()
 		return;
 	end
 
-   return host, port, loglevel
+	local num_connnections = opts["n"]
+
+   return host, port, loglevel, num_connections
 
 end
 
@@ -239,14 +253,10 @@ end
 --- main function (entry point)
 -- @return content of the task file
 ------------------------------------------------------------------------------
-function client_main()
+function client_connection(host, port)
 
-    local host, port, loglevel = client_Validate_args()
-	if(host == nil or port == nil or loglevel == nil) then
-		return;
-	end
 
-	set_loglevel(logger, loglevel)
+	local tcp = assert(socket.tcp())
 
     tcp:setoption('tcp-nodelay', true)
 
@@ -275,7 +285,7 @@ function client_main()
 	    --reset timeout to nil (blocking)
 		tcp:settimeout(nil)
 		local cl = os.clock()
-		local status = client_run_loop(host, port)
+		local status = client_run_loop(tcp, host, port)
 		print("Total time to process" .. os.clock() -cl)
 		if(status == "closed") then
 			reconnect = true;
@@ -283,4 +293,35 @@ function client_main()
 	end
 end
 
-client_main()
+-- validate args
+local host, port, loglevel, num_connections = client_Validate_args()
+if(host == nil or port == nil or loglevel == nil) then
+	return;
+end
+-- set the log level
+set_loglevel(logger, loglevel)
+-- client_connection(host, port)
+
+
+if not num_connections then
+	num_connections = get_num_cores()  --one connection per core
+	logger:info("number of cores on this machine " .. num_connections)
+end
+
+
+
+local conn_t = {}
+if  num_connections < 2 then
+	client_connection()
+else
+    logger:info("Number of connections " .. num_connections)
+	for i= 1, num_connections do
+		table.insert(conn_t, lanes.gen(client_connection)(host, port))
+	end
+
+	for i =1, #conn_t do
+		conn_t[i]:join()
+	end
+
+end
+

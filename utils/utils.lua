@@ -163,3 +163,22 @@ function set_loglevel(logger, level)
   end
 
 end
+
+------------------------------------------------------------------------------
+--- Get the number of cores
+-- @return os  windows, linux, mac
+------------------------------------------------------------------------------
+function get_num_cores()
+  local osname = os.getenv("OS")
+  if osname then
+	osname = string.lower(osname)
+	if string.find(osname, "window") or string.find(osname, "mingw") then
+		return tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
+	end
+  end
+
+  -- FIXME get number of cores in linux/mac either by cat /proc/cpuinfo
+  return 2; --assume old dual core
+
+
+end

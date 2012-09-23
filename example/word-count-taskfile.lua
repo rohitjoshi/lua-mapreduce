@@ -86,7 +86,7 @@ end
 	mr.finalfn = function (results)
 		print("Final results of the task:")
 		for key, value in pairs(results) do
-			print( key .. ":" .. value)
+		--	print( key .. ":" .. value)
 			coroutine.yield()
 		end
 	end
@@ -104,26 +104,35 @@ end
 		local lines = value:split("[^\r\n%s]+")
 	--	logger:debug("Number of lines in " .. #lines .. " in the file " .. key)
 
+	    local words = {}
 		for k, w in  ipairs(lines) do
 
 			if(w ~= nil) then
 
-				local words = {}
+
 				string.gsub(w, "(%a+)", function (word)
 					table.insert(words, string.lower(word))
 				end)
 
 
+
 				--local words = w:split("[^ %s]+")
 
-				if(words ~= nil) then
-					--logger:debug("Number of words in line " .. k .. " are " .. #words)
-					for j=1, #words do
-						--logger:debug("mapfn:yielding " .. words[j])
-						coroutine.yield(words[j], 1)
 
-					end
-				end
+
+			end
+		end
+	--	table.sort(words, function(x,y) return x < y end)
+
+	--	for i= 1, #words do
+	--		print(words[i])
+	--	end
+
+		if(words ~= nil) then
+			--logger:debug("Number of words in line " .. k .. " are " .. #words)
+			for j=1, #words do
+				--logger:debug("mapfn:yielding " .. words[j])
+				coroutine.yield(words[j], 1)
 
 			end
 		end
