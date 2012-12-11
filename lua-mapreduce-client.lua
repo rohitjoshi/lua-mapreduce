@@ -243,7 +243,7 @@ local function client_Validate_args()
 		return;
 	end
 
-	local num_connnections = opts["n"]
+	local num_connections = opts["n"]
 
    return host, port, loglevel, num_connections
 
@@ -306,17 +306,19 @@ set_loglevel(logger, loglevel)
 if not num_connections then
 	num_connections = get_num_cores()  --one connection per core
 	logger:info("number of cores on this machine " .. num_connections)
+else
+    num_connections = tonumber(num_connections)  
 end
 
 
 
 local conn_t = {}
 if  num_connections < 2 then
-	client_connection()
+	client_connection(host, port)
 else
     logger:info("Number of connections " .. num_connections)
 	for i= 1, num_connections do
-		table.insert(conn_t, lanes.gen(client_connection)(host, port))
+                table.insert(conn_t, lanes.gen(client_connection(host, port)))
 	end
 
 	for i =1, #conn_t do

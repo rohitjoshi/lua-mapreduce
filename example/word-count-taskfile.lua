@@ -18,7 +18,7 @@
 -- as they are invoked using coroutines
 -------------------------------------------------------------------------------
 local lfs = require "lfs"
- --logger = logging.console()
+   logger = logging.console()
 
 
 ------------------------------------------------------------------------------
@@ -41,13 +41,13 @@ end
 local function read_source()
 	--local file_path = system.pathForFile( "*.lua", lfs.currentdir() )
 	local file_path = lfs.currentdir()
-	--logger:debug("Current directory path:" .. file_path)
+	logger:debug("Current directory path:" .. file_path)
 	local source_table = {}
 	for file in lfs.dir(file_path) do
 	    if(string.find(file, ".lua") ~= nil) then
-		--	logger:debug("File name:" .. file_path .. "/" .. file)
+			logger:debug("File name:" .. file_path .. "/" .. file)
 			local c = read_file(file_path .. "/" .. file)
-		--	logger:debug("file:" .. file .. ", length:" .. #c)
+			logger:debug("file:" .. file .. ", length:" .. #c)
 
 			if( c ~= nil) then
 				source_table[file]=c
@@ -65,7 +65,7 @@ end
 --  @param value: conent of the file
 -- @return it returns the word and count 1
 ------------------------------------------------------------------------------
- function mapreducefn()
+function mapreducefn()
 
    local mr = {}
 
@@ -75,7 +75,7 @@ end
 
     --- Get task: It returns the task based on source. It could be data from the disk or streaming
 	mr.taskfn = function()
-		--logger:debug("Getting map task")
+		logger:debug("Getting map task")
 		local tasks = read_source()  -- read source is utility function defined to read data source
 		for key, value in pairs(tasks) do
 			coroutine.yield(key, value)
@@ -86,8 +86,8 @@ end
 	mr.finalfn = function (results)
 		print("Final results of the task:")
 		for key, value in pairs(results) do
-		--	print( key .. ":" .. value)
-			coroutine.yield()
+			print( key .. ":" .. value)
+			coroutine.yield(value)
 		end
 	end
 
@@ -101,7 +101,7 @@ end
 		--logger:debug("mapfn with key:" .. key .. ", value :" .. value .. "\r\n\r\n")
 		local file_words = {}
 
-		local lines = value:split("[^\r\n%s]+")
+		local lines = value:split("[^\n%s]+")
 	--	logger:debug("Number of lines in " .. #lines .. " in the file " .. key)
 
 	    local words = {}
