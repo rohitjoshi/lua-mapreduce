@@ -13,12 +13,17 @@ It uses following lua modules.
 2. [copas](http://keplerproject.github.com/copas/): Coroutine Oriented Portable Asynchronous Services for Lua
 3. [lualogging](www.keplerproject.org/lualogging)
 4. [serialize](https://github.com/fab13n/metalua/blob/master/src/lib/serialize.lua)(included in this project)
-5. [luafilesystem](http://keplerproject.github.com/luafilesystem/): Used only in the task-file example to list files from the directory. lua-mapreduce client/server doesn't depend on this module
+5. [lanes](https://github.com/LuaLanes/lanes): multithreading library for Lua
+6. [luafilesystem](http://keplerproject.github.com/luafilesystem/): Used only in the task-file example to list files from the directory. lua-mapreduce client/server doesn't depend on this module
 
 For windows, you can install [luaforwindows](http://code.google.com/p/luaforwindows/) which includes these modules.
 
 For Linux/Unix/MacOS and Windows: you can use [LuaDist](http://luadist.org/) 
 
+Under a Debian GNU/Linux system you can install the dependencies with:
+  apt-get install lua-logging lua-copas lua-socket lua-filesystem
+  lanes is not yet packaged for Debian, you can apt-get install luarocks and then do
+  luarocks install lanes (as root or with sudo)
 
 ### Directory structure:
 1. [lua-mapreduce-server.lua](https://github.com/rohitjoshi/lua-mapreduce/blob/master/lua-mapreduce-server.lua) : It is a map-reduce server which receives the connections from clients, sends them task-file and than sends them tasks to perform map/reduce functionality.

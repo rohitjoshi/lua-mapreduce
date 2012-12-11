@@ -262,13 +262,12 @@ local function client_handler(skt, host, port)
 	logger:info("Taskfile is sent to client %s successfully", peername)
 	local cl = os.clock()
 
-
 	-- get all map tasks
 	logger:info("Sending map task to client '%s'", peername)
 
 	repeat
 
-		local ok , key, content = coroutine.resume(co_taskfn); --get task
+		local ok, key, content = coroutine.resume(co_taskfn); --get task
 
 		if(ok and key ~= nil and content ~= nil) then
 		logger:debug("\n\n**********************Got the map task with key:" .. key  .. "**********************\n\n")
@@ -285,8 +284,6 @@ local function client_handler(skt, host, port)
 				logger:error("Connection closed by foreign host.")
 				return;
 			end
-
-
 		end
 
 	until (coroutine.status(co_taskfn) == 'dead' or ok ~= true or content == nil or status~="ok")
@@ -313,10 +310,7 @@ local function client_handler(skt, host, port)
 				logger:error("Connection closed by foreign host.")
 				return;
 			end
-
-
 		end
-
 	until (coroutine.status(co_reducefn) == 'dead' or ok ~= true or content == nil or status=="ok")
 
 	logger:info("All reduce tasks results are received successfully")
@@ -326,8 +320,6 @@ local function client_handler(skt, host, port)
 	logger:info("Calling final task for client %s", peername)
 
     repeat
-
-
 		local ok  = coroutine.resume(co_finalfn, reduce_results)
 	until (coroutine.status(co_finalfn) == 'dead' or ok ~= true)
 
@@ -353,7 +345,7 @@ local function validate_args(arg)
    local host = opts["s"]
    if(host == nil) then host = "127.0.0.1" end
    local port = opts["p"]
-   if( port == nil ) then port = "10000" end
+   if(port == nil ) then port = "10000" end
    local task_file = opts["t"]
    if(task_file == nil) then
 	logger:debug("task file is not defined. Must specify option -t")
@@ -381,7 +373,7 @@ local function read_task_file(file)
     local content = f:read("*all")
     f:close()
 	logger:debug("Validate content of the task file: " .. file)
-	local f = assert(loadstring(content))()
+	assert(loadstring(content, "task_file"))()
 	local mr_t = mapreducefn()
 	finalfn = mr_t.finalfn
 	taskfn = mr_t.taskfn
