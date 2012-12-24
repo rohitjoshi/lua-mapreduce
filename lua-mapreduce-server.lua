@@ -33,6 +33,7 @@ local finalfn
 local map_results = {}
 local reduce_results = {}
 local task_file_content = nil
+local taskfn_argument = nil
 local taskfn
 
 local tasks_completed = false
@@ -48,13 +49,13 @@ local co_finalfn
 -- @param number of messages to send
 ------------------------------------------------------------------------------
 local function get_reduce_task()
-    logger:debug("Getting reduce task from map results " .. #map_results)
+    local length = 0
+    for x in pairs(map_results) do length = length + 1 end
+    logger:debug("Getting reduce task from map results " .. length)
 	for key, value in pairs(map_results) do
 		logger:debug("map_results task:" .. key .. ", value:" .. table.tostring(value))
 		coroutine.yield(key, value)
-
 	end
-
 end
 
 
@@ -171,7 +172,7 @@ local function receive_map_result(client, key)
 			--logger:debug("k:" .. m_key )
 		    for k , v in pairs(m_kv) do
 				if(k ~= nil and v ~= nil) then
-					logger:debug("adding map result  k:" .. k .. "v:" .. v)
+					logger:debug("adding map result  k:" .. k .. " v:" .. v)
 					if(map_results[k] == nil) then
 						map_results[k] = { v }
 					else
@@ -267,29 +268,30 @@ local function client_handler(skt, host, port)
 
 	repeat
 
-		local ok, key, content = coroutine.resume(co_taskfn); --get task
+		local ok, key, content = coroutine.resume(co_taskfn, taskfn_argument); --get task
 
 		if(ok and key ~= nil and content ~= nil) then
 		logger:debug("\n\n**********************Got the map task with key:" .. key  .. "**********************\n\n")
-			local status = send_map_task(client, key, content)
+			status = send_map_task(client, key, content)
 			if(status == "closed") then
 				logger:error("Lost task " .. key)
 				logger:error("Connection closed by foreign host.")
 				return;
 			end
 
-			local status, mapr_key = receive_map_result(client, key)
+            local mapr_key
+			status, mapr_key = receive_map_result(client, key)
 			if(status == "closed") then
 				logger:error("Lost task " .. key)
 				logger:error("Connection closed by foreign host.")
 				return;
 			end
 		end
-
+		print("status: " .. status)
 	until (coroutine.status(co_taskfn) == 'dead' or ok ~= true or content == nil or status~="ok")
     logger:info("All map task processing is completed and map results received successfully")
 
-	logger:info("Sending reduce tasks to clinet '%s'", peername)
+	logger:info("Sending reduce tasks to client '%s'", peername)
 
     repeat
 
@@ -297,21 +299,22 @@ local function client_handler(skt, host, port)
 		local ok , key, content = coroutine.resume(co_reducefn)
 		if(ok and key ~= nil and content ~= nil) then
             logger:debug("Got the reduce task:" .. key)
-			local status = send_reduce_task(client, key, content)
+			status = send_reduce_task(client, key, content)
 			if(status == "closed") then
 				logger:error("Lost task " .. key)
 				logger:error("Connection closed by foreign host.")
 				return;
 			end
 
-			local status, r_key, r_data = receive_reduce_result(client, key)
+			local r_key, r_data
+			status, r_key, r_data = receive_reduce_result(client, key)
 			if(status == "closed") then
 				logger:error("Lost task " .. key)
 				logger:error("Connection closed by foreign host.")
 				return;
 			end
 		end
-	until (coroutine.status(co_reducefn) == 'dead' or ok ~= true or content == nil or status=="ok")
+	until (coroutine.status(co_reducefn) == 'dead' or ok ~= true or content == nil or status~="ok")
 
 	logger:info("All reduce tasks results are received successfully")
 	print("Total time for map-reduce:" .. os.clock() - cl)
@@ -335,8 +338,8 @@ end
 -- @return host, port and task_file
 ------------------------------------------------------------------------------
 local function validate_args(arg)
-   local usage = "Usage lua-mapreduce-server.lua -t <task file name>  [ -s server  -p port -l loglevel]"
-   local opts = getopt( arg, "hspdtl" )
+   local usage = "Usage lua-mapreduce-server.lua -t <task file name>  [ -s server  -p port -l loglevel -a <arguments to task init> ]"
+   local opts = getopt( arg, "hspdtla" )
 
    if(opts["h"] ~= nil) then
        print(usage)
@@ -361,7 +364,9 @@ local function validate_args(arg)
 		return;
 	end
 
-   return host, port, task_file, loglevel
+   local arg_task = opts["a"]
+
+   return host, port, task_file, loglevel, arg_task
 
 end
 ------------------------------------------------------------------------------
@@ -391,8 +396,9 @@ end
 ------------------------------------------------------------------------------
 local function main()
     -- parse command line args and validate
-	local host, port, task_file, loglevel = validate_args(arg)
+	local host, port, task_file, loglevel, arg_task = validate_args(arg)
 	if(host == nil or port == nil or task_file == nil or loglevel == nil) then return end
+    taskfn_argument = arg_task
 
 	set_loglevel(logger, loglevel)
 

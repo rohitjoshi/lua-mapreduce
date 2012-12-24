@@ -286,7 +286,7 @@ function client_connection(host, port)
 		tcp:settimeout(nil)
 		local cl = os.clock()
 		local status = client_run_loop(tcp, host, port)
-		print("Total time to process" .. os.clock() -cl)
+		print("Total time to process " .. os.clock() -cl)
 		if(status == "closed") then
 			reconnect = true;
 		end
