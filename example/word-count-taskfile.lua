@@ -36,27 +36,32 @@ end
 
 ------------------------------------------------------------------------------
 --- Read source : It reads the source and creates a task
--- @return content of the task file
+-- @return content of the file
 ------------------------------------------------------------------------------
-local function read_source()
-	--local file_path = system.pathForFile( "*.lua", lfs.currentdir() )
-	local file_path = lfs.currentdir()
-	logger:debug("Current directory path:" .. file_path)
+local function read_source(folder)
+    print(folder)
+    local file_path = nil
+    if(folder ~= nil) then
+        file_path = folder
+    else
+        file_path = lfs.currentdir()
+    end
+	logger:debug("Processing folder:" .. file_path)
 	local source_table = {}
-	for file in lfs.dir(file_path) do
-	    if(string.find(file, ".lua") ~= nil) then
-			logger:debug("File name:" .. file_path .. "/" .. file)
-			local c = read_file(file_path .. "/" .. file)
-			logger:debug("file:" .. file .. ", length:" .. #c)
+    for file in lfs.dir(file_path) do
+        print("---->" .. file)
+        if(string.find(file, ".txt") ~= nil) then
+            logger:debug("File name:" .. file_path .. "/" .. file)
+            local c = read_file(file_path .. "/" .. file)
+            logger:debug("file:" .. file .. ", length:" .. #c)
 
-			if( c ~= nil) then
-				source_table[file]=c
-			end
-		end
+            if( c ~= nil) then
+                source_table[file]=c
+            end
+        end
 	end
 
 	return source_table
-
 end
 ------------------------------------------------------------------------------
 --- mapfunction: It splits content of the lines by \r\n (windows)
@@ -74,9 +79,9 @@ function mapreducefn()
 
 
     --- Get task: It returns the task based on source. It could be data from the disk or streaming
-	mr.taskfn = function()
-		logger:debug("Getting map task")
-		local tasks = read_source()  -- read source is utility function defined to read data source
+	mr.taskfn = function(folder)
+		logger:debug("Getting map task for folder " .. folder)
+		local tasks = read_source(folder)  -- read source is utility function defined to read data source
 		for key, value in pairs(tasks) do
 			coroutine.yield(key, value)
 		end

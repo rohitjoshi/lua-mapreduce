@@ -34,12 +34,12 @@ Under a Debian GNU/Linux system you can install the dependencies with:
 
 4. [utils/serialize.lua](https://github.com/rohitjoshi/lua-mapreduce/blob/master/utils/serialize.lua) : Provides table serialization functionality 
 
-5. [example/word-count-taskfile.lua](https://github.com/rohitjoshi/lua-mapreduce/blob/master/example/word-count-taskfile.lua) : Example task-file for counting words from all .lua files in current directory
+5. [example/word-count-taskfile.lua](https://github.com/rohitjoshi/lua-mapreduce/blob/master/example/word-count-taskfile.lua) : Example task-file for counting words from all .txt files in a given directory (it uses the current directory if none is specified).
 More details on how to create task file is given in [word-count example](https://github.com/rohitjoshi/lua-mapreduce/wiki/Example---word-count) page of wiki.
 
 ### Example:
 1. Start Server:
-lua-mapreduce-server.lua  -t task-file.lua [-s server-ip -p port  -l loglevel]
+lua-mapreduce-server.lua  -t task-file.lua [-s server-ip -p port  -l loglevel -a command-line argument to task]
 
 2. Start Client:
 lua-mapreduce-client.lua [-s server-ip -p port -l loglevel]
