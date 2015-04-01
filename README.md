@@ -3,7 +3,7 @@ lua-mapreduce
 
 Map Reduce implemented in Lua
 
-[lua-mapreduce](https://github.com/rohitjoshi/lua-mapreduce) is a fast and easy MapReduce implementation for lua inspired by other ma-reduce implementation and particularly octopy in python.
+[lua-mapreduce](https://github.com/rohitjoshi/lua-mapreduce) is a fast and easy MapReduce implementation for lua inspired by other map-reduce implementation and particularly octopy in python.
 
 It doesn't aim to meet all your distributed computing needs, but its simple approach is amendable to a large proportion of parallelizable tasks. If your code has a for-loop, there's a good chance that you can make it distributed with just a few small changes. 
 
