@@ -9,7 +9,7 @@ It doesn't aim to meet all your distributed computing needs, but its simple appr
 
 It uses following lua modules. 
 
-1. [lausocket](http://w3.impa.br/~diego/software/luasocket/): tcp client-server connectivity
+1. [luasocket](http://w3.impa.br/~diego/software/luasocket/): tcp client-server connectivity
 2. [copas](http://keplerproject.github.com/copas/): Coroutine Oriented Portable Asynchronous Services for Lua
 3. [lualogging](www.keplerproject.org/lualogging)
 4. [serialize](https://github.com/fab13n/metalua/blob/master/src/lib/serialize.lua)(included in this project)
